@@ -1,0 +1,97 @@
+@startuml DiagramKlas
+
+package chinesecheckers.client {
+    class GameClient {
+        - ClientGUI clientGUI
+        - Board board
+        - GameFacade gameFacade
+        + void start()
+        + void stopConnection()
+        + void sendMove(int startX, int startY, int endX, int endY)
+        + void skipTurn()
+    }
+
+    class ClientGUI {
+        - Board board
+        - GameClient gameClient
+        + void showPlayerTurnMessage()
+        + void endPlayerTurn()
+        + void updateStandings(String rankMessage)
+        + void endGame()
+    }
+
+    class BoardPanel {
+        - Board board
+        - GameClient gameClient
+        + void setPlayerTurn(boolean isPlayerTurn)
+    }
+}
+
+package chinesecheckers.server {
+    class GameServer {
+        - Board board
+        - ServerGUI gui
+        + void start()
+        + void broadcastMessage(String message)
+        + void updateGameState(String move)
+    }
+
+    class ClientHandler {
+        - Board board
+        + void sendMessage(String message)
+        + void sendGameState(Board board)
+        + boolean isConnected()
+        + void close()
+    }
+
+    class Board {
+        + void initializeBoard()
+        + void update(String gameState)
+        + boolean isValidMove(int startX, int startY, int endX, int endY, int playerId)
+    }
+
+    class ServerGUI {
+        + int getSelectedPlayers()
+        + void waitForWindowClose()
+    }
+}
+
+package chinesecheckers.patterns {
+    class GameFacade {
+        - Board board
+        - ClientGUI clientGUI
+        - GameClient gameClient
+        + void initializeGame(int maxPlayers)
+        + void updateGameState(String gameState)
+        + void sendMove(int startX, int startY, int endX, int endY)
+    }
+
+    interface Observable {
+        + void addObserver(Observer observer)
+        + void removeObserver(Observer observer)
+        + void notifyObservers(String message)
+    }
+
+    interface Observer {
+        + void update(String message)
+    }
+}
+
+GameClient --> ClientGUI
+GameClient --> Board
+GameClient --> GameFacade
+ClientGUI --> BoardPanel
+ClientGUI --> GameClient
+BoardPanel --> Board
+BoardPanel --> GameClient
+GameServer --> ClientHandler
+GameServer --> Board
+GameServer --> ServerGUI
+ClientHandler --> Board
+GameFacade --> Board
+GameFacade --> ClientGUI
+GameFacade --> GameClient
+GameServer ..|> Observable
+ClientHandler ..|> Observer
+
+@enduml
