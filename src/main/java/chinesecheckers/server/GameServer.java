@@ -24,6 +24,7 @@ public class GameServer implements Observable{
     private boolean gameStarted = false;
     private final ServerGUI gui;
     private String variant;
+    private int botCount = 0;
     /**
      * Konstruktor klasy GameServer.
      * @param port Numer portu serwera.
@@ -81,7 +82,9 @@ public class GameServer implements Observable{
     private void initializeGame(ServerSocket serverSocket) throws IOException {
         variant = gui.getSelectedVariant();
         maxPlayers = gui.getSelectedPlayers();
-        System.out.println("Wybrano liczbę graczy: " + maxPlayers);
+        botCount = gui.getSelectedBots();
+        int humanPlayers = maxPlayers - botCount;
+        System.out.println("Wybrano liczbę graczy: " + maxPlayers + " w tym " + botCount + " botów.");
 
         board.setMaxPlayers(maxPlayers);
         board.setVariant(variant);
@@ -93,15 +96,27 @@ public class GameServer implements Observable{
         }
 
         System.out.println("Oczekiwanie na graczy..."); 
-        new Thread(() -> handleNewConnections(serverSocket)).start();
+        new Thread(() -> handleNewConnections(serverSocket, humanPlayers)).start();
         synchronized (players) {
-            while (players.size() < maxPlayers) {
+            while (players.size() < humanPlayers) {
                 try {
                     players.wait();
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     System.out.println("Oczekiwanie na graczy przerwane.");
                 }
+            }
+        }
+
+        for (int i = 0; i < botCount; i++) {
+            try {
+                Socket socket = new Socket("localhost", port);
+                BotPlayer bot = new BotPlayer(socket, nextPlayerId++, maxPlayers, variant);
+                players.add(bot);
+                addObserver(bot);
+                System.out.println("Bot " + bot.getPlayerId() + " dołączył do gry.");
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
     
@@ -314,7 +329,7 @@ public class GameServer implements Observable{
  * Metoda handleNewConnections obsługuje nowe połączenia.
  * @param serverSocket Gniazdo serwera.
  */
-    private void handleNewConnections(ServerSocket serverSocket) {
+    private void handleNewConnections(ServerSocket serverSocket, int humanPlayers) {
         while (true) {
             try {
                 Socket clientSocket = serverSocket.accept();
@@ -325,8 +340,8 @@ public class GameServer implements Observable{
                         } finally {
                             clientSocket.close();
                         }
-                    } else {
-                        ClientHandler player = new ClientHandler(clientSocket, nextPlayerId++,maxPlayers,variant);
+                    } else if (players.size() < humanPlayers) {
+                        ClientHandler player = new ClientHandler(clientSocket, nextPlayerId++, maxPlayers, variant);
                         if (player.isConnected()) {
                             players.add(player);
                             addObserver(player);
@@ -336,6 +351,12 @@ public class GameServer implements Observable{
                             System.out.println("Gracz " + player.getPlayerId() + " rozłączył się przed dołączeniem do gry.");
                         }
                         removeDisconnectedPlayersBeforeStart();
+                    } else {
+                        try (PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)) {
+                            out.println("Maksymalna liczba graczy osiągnięta.");
+                        } finally {
+                            clientSocket.close();
+                        }
                     }
                 }
             } catch (IOException e) {

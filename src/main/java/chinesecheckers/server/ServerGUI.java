@@ -13,6 +13,7 @@ import java.awt.event.ActionEvent;
 public class ServerGUI {
     private int selectedPlayers;
     private String selectedVariant;
+    private int selectedBots;
     private final JFrame frame;
     private final JTextArea logArea;
 /**
@@ -64,13 +65,30 @@ public class ServerGUI {
                     synchronized (this) {
                         this.notify();
                     }
+                    JPanel botSelectionPanel = createBotSelectionPanel();
                     frame.getContentPane().remove(playerSelectionPanel);
-                    frame.add(scrollPane, BorderLayout.CENTER);
+                    frame.add(botSelectionPanel, BorderLayout.CENTER);
                     frame.revalidate();
                     frame.repaint();
+
+                    for (Component botComponent : ((JPanel) botSelectionPanel.getComponent(1)).getComponents()) {
+                        if (botComponent instanceof JButton) {
+                            JButton botButton = (JButton) botComponent;
+                            botButton.addActionListener((ActionEvent ev) -> {
+                                selectedBots = Integer.parseInt(botButton.getText());
+                                synchronized (this) {
+                                    this.notify();
+                                }
+                                frame.getContentPane().remove(botSelectionPanel);
+                                frame.add(scrollPane, BorderLayout.CENTER);
+                                frame.revalidate();
+                                frame.repaint();
+                            });
+                        }
+                    }
                 });
             }
-        }
+        }      
     }
 /**
  * Metoda createVariantPanel tworzy panel wyboru wariantu gry.
@@ -127,6 +145,33 @@ public class ServerGUI {
         return playerSelectionPanel;
     }
 /**
+ * Metoda createBotSelectionPanel tworzy panel wyboru liczby botów.
+ * @return botSelectionPanel - panel wybranej liczby botów
+ */
+    private JPanel createBotSelectionPanel() {
+        JPanel botSelectionPanel = new JPanel(new BorderLayout(10, 10));
+        JLabel label = new JLabel("Wybierz liczbę botów:", SwingConstants.CENTER);
+        label.setFont(new Font("FF DIN", Font.BOLD, 30));
+        label.setBorder(BorderFactory.createEmptyBorder(20, 0, 10, 0));
+        botSelectionPanel.add(label, BorderLayout.NORTH);
+
+        JPanel buttonPanel = new JPanel(new GridLayout(2, 2, 10, 10));
+        int maxBots = selectedPlayers;
+        Color[] buttonColors = {new Color(139, 0, 0), new Color(0, 100, 0), new Color(0, 0, 139), new Color(255, 140, 0), new Color(139, 0, 139), new Color(60, 40, 20), new Color(69, 69, 69)};
+        for (int i = 0; i <= maxBots; i++) {
+            JButton button = new JButton(String.valueOf(i));
+            button.setFont(new Font("Serif", Font.BOLD, 40));
+            button.setBackground(buttonColors[i]);
+            button.setForeground(Color.WHITE);
+            button.setOpaque(true);
+            button.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+            buttonPanel.add(button);
+        }
+
+        botSelectionPanel.add(buttonPanel, BorderLayout.CENTER);
+        return botSelectionPanel;
+    }
+/**
  * Metoda getSelectedPlayers zwraca wybraną liczbę graczy.
  * @return selectedPlayers - wybrana liczba graczy
  */
@@ -149,6 +194,18 @@ public class ServerGUI {
             Thread.currentThread().interrupt();
         }
         return selectedVariant;
+    }
+/**
+ * Metoda getSelectedBots zwraca wybraną liczbę botów.
+ * @return selectedBots - wybrana liczba botów
+ */
+    public synchronized int getSelectedBots() {
+        try {
+            this.wait();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        return selectedBots;
     }
 /**
  * Metoda waitForWindowClose oczekuje na zamknięcie okna.

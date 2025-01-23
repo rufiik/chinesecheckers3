@@ -232,7 +232,7 @@ public class BoardPanel extends JPanel {
             case 4:
                 return Color.GREEN;
             case 5:
-                return Color.ORANGE;
+                return new Color(255, 128, 0);
             case 6:
                 return new Color(128, 0, 128);
             default:
