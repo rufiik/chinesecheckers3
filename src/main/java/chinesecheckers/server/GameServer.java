@@ -181,18 +181,22 @@ public class GameServer implements Observable{
             return;
         }
 
-        if (currentPlayer == null || !currentPlayer.isConnected()) {
+        if (currentPlayer == null || !currentPlayer.isConnected()) { 
             System.out.println("Gracz " + playerId + " rozłączył się.");
             broadcastMessage("Gracz " + playerId + " rozłączył się.");
             disconnectedPlayers.add(playerId);
             currentPlayerIndex = (currentPlayerIndex + 1) % playerOrder.size();
             return;
         }
-        
+
         currentPlayer.sendMessage("Twoja tura!");
         broadcastMessage("Gracz " + playerId + " wykonuje ruch.", playerId);
-
-        String move = currentPlayer.receiveMessage();
+        String move =null;
+        if (currentPlayer instanceof BotPlayer) {
+            move = ((BotPlayer) currentPlayer).getMove();
+        } else {
+            move = currentPlayer.receiveMessage();
+        }
         if (move == null) {
             System.out.println("Gracz " + playerId + " rozłączył się w trakcie swojej tury.");
             broadcastMessage("Gracz " + playerId + " rozłączył się w trakcie swojej tury!");
@@ -368,8 +372,12 @@ public class GameServer implements Observable{
      * Metoda broadcastGameState wysyła stan gry do wszystkich graczy.
      */
     public synchronized void broadcastGameState() {
+        String gameState = board.toString();
         for (ClientHandler client : players) {
-            client.sendGameState(board);
+            client.sendMessage("Stan planszy:" + gameState);
+            if (client instanceof BotPlayer) {
+                ((BotPlayer) client).updateBoard(gameState);
+            }
         }
     }
     /**

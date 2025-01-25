@@ -1,6 +1,7 @@
 package chinesecheckers.server;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
@@ -369,7 +370,7 @@ public class Board {
  */
     public boolean isValidMove(int startX, int startY, int endX, int endY, int playerId) {
         if (!isWithinBoard(startX, startY) || !isWithinBoard(endX, endY)) {
-            return false;
+            return false;   
         }
 
         if (!hasPiece(startX, startY)) {
@@ -378,6 +379,7 @@ public class Board {
 
         if (!isEmpty(endX, endY)) {
             return false;
+           
         }
         if ("Order Out Of Chaos".equals(variant)) {
             if (isInHomeBase(startX, startY, playerId) && !isInHomeBase(endX, endY, playerId)) {
@@ -391,6 +393,7 @@ public class Board {
 
         if (isAdjacentMove(startX, startY, endX, endY) || isJumpMove(startX, startY, endX, endY) || isValidMultiJump(startX, startY, endX, endY, playerId)) {
             return true;
+           
         }
         return false;
     }
@@ -501,5 +504,45 @@ public class Board {
  */
     public void setVariant(String variant) {
         this.variant = variant;
+    }
+
+      /**
+     * Metoda getPlayerPieces zwraca listę pionków gracza.
+     * @param playerId - numer gracza
+     * @return lista pionków gracza
+     */
+    public List<int[]> getPlayerPieces(int playerId) {
+        List<int[]> pieces = new ArrayList<>();
+        for (int i = 0; i < ROWS; i++) {
+            for (int j = 0; j < COLUMNS; j++) {
+                if (board[i][j] == playerId) {
+                    pieces.add(new int[]{i, j});
+                }
+            }
+        }
+        return pieces;
+    }
+    /**
+     * Metoda getPossibleMoves zwraca możliwe ruchy dla pionka.
+     * @param startX - współrzędna x początku ruchu
+     * @param startY - współrzędna y początku ruchu
+     * @return lista możliwych ruchów
+     */
+    public List<int[]> getPossibleMoves(int startX, int startY) {
+        List<int[]> moves = new ArrayList<>();
+        int[][] directions = {
+            {-1, 0}, {1, 0}, {0, -1}, {0, 1}, {-1, -1}, {1, 1}, {-1, 1}, {1, -1}
+        };
+
+        for (int[] dir : directions) {
+            int endX = startX + dir[0];
+            int endY = startY + dir[1];
+            if (isWithinBoard(endX, endY) && isEmpty(endX, endY)) {
+                moves.add(new int[]{endX, endY});
+            }
+        }
+
+        moves.addAll(getPossibleJumps(startX, startY, board[startX][startY]));
+        return moves;
     }
 }
