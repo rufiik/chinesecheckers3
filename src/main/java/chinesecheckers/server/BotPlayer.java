@@ -60,7 +60,6 @@ public class BotPlayer extends ClientHandler {
                 }
             }
         }
-        System.out.println("Najlepszy ruch: " + bestMove[0] + "," + bestMove[1] + " -> " + bestMove[2] + "," + bestMove[3]);
         return bestMove;
     }
     /**

@@ -7,13 +7,18 @@ import java.nio.charset.StandardCharsets;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import org.springframework.stereotype.Component;
+
 /**
  * Klasa ServerGUI reprezentuje interfejs graficzny serwera gry w chińskie warcaby.
  */
+@Component
 public class ServerGUI {
     private int selectedPlayers;
     private String selectedVariant;
     private int selectedBots;
+    private String gameChoice;
+    private Long selectedGameId;
     private final JFrame frame;
     private final JTextArea logArea;
 /**
@@ -26,6 +31,7 @@ public class ServerGUI {
         frame.setLocationRelativeTo(null);
         frame.setLayout(new BorderLayout(10, 10));
 
+        JPanel choicePanel = createGameChoicePanel();
         JPanel variantPanel = createVariantPanel();
         JPanel playerSelectionPanel = createPlayerSelectionPanel();
 
@@ -38,10 +44,37 @@ public class ServerGUI {
         System.setOut(printStream);
         System.setErr(printStream);
 
-        frame.add(variantPanel, BorderLayout.NORTH);
+        frame.add(choicePanel, BorderLayout.NORTH);
         frame.setVisible(true);
 
-        for (Component component : ((JPanel) variantPanel.getComponent(1)).getComponents()) {
+        for (java.awt.Component component : ((JPanel) choicePanel.getComponent(1)).getComponents()) {
+            if (component instanceof JButton) {
+                JButton button = (JButton) component;
+                button.addActionListener((ActionEvent e) -> {
+                    if (button.getText().equals("Wczytaj zapisaną grę")) {
+                        gameChoice = button.getText();
+                        synchronized (this) {
+                            this.notify();
+                        }
+                        frame.getContentPane().remove(choicePanel);
+                        frame.add(scrollPane, BorderLayout.CENTER);
+                        frame.revalidate();
+                        frame.repaint();
+                    } else if (button.getText().equals("Rozpocznij nową grę")) {
+                        gameChoice = button.getText();
+                        synchronized (this) {
+                            this.notify();
+                        }
+                        frame.getContentPane().remove(choicePanel);
+                        frame.add(variantPanel, BorderLayout.NORTH);
+                        frame.revalidate();
+                        frame.repaint();
+                    }
+                });
+            }
+        }
+
+        for (java.awt.Component component : ((JPanel) variantPanel.getComponent(1)).getComponents()) {
             if (component instanceof JButton) {
                 JButton button = (JButton) component;
                 button.addActionListener((ActionEvent e) -> {
@@ -57,7 +90,7 @@ public class ServerGUI {
             }
         }
 
-        for (Component component : ((JPanel) playerSelectionPanel.getComponent(1)).getComponents()) {
+        for (java.awt.Component component : ((JPanel) playerSelectionPanel.getComponent(1)).getComponents()) {
             if (component instanceof JButton) {
                 JButton button = (JButton) component;
                 button.addActionListener((ActionEvent e) -> {
@@ -71,7 +104,7 @@ public class ServerGUI {
                     frame.revalidate();
                     frame.repaint();
 
-                    for (Component botComponent : ((JPanel) botSelectionPanel.getComponent(1)).getComponents()) {
+                    for (java.awt.Component botComponent : ((JPanel) botSelectionPanel.getComponent(1)).getComponents()) {
                         if (botComponent instanceof JButton) {
                             JButton botButton = (JButton) botComponent;
                             botButton.addActionListener((ActionEvent ev) -> {
@@ -172,6 +205,52 @@ public class ServerGUI {
         return botSelectionPanel;
     }
 /**
+ * Metoda createGameChoicePanel tworzy panel wyboru czy chcemy wczytać grę czy rozpocząć nową.
+ * @return gameChoicePanel - panel wyboru
+ */
+    private JPanel createGameChoicePanel() {
+        JPanel gameChoicePanel = new JPanel(new BorderLayout(10, 10));
+        JLabel label = new JLabel("Wybierz co chcesz zrobić:", SwingConstants.CENTER);
+        label.setFont(new Font("FF DIN", Font.BOLD, 30));
+        label.setBorder(BorderFactory.createEmptyBorder(20, 0, 10, 0));
+        gameChoicePanel.add(label, BorderLayout.NORTH);
+
+        JPanel buttonPanel = new JPanel(new GridLayout(2, 1, 10, 10));
+        String[] choices = {"Rozpocznij nową grę", "Wczytaj zapisaną grę"};
+        for (String choice : choices) {
+            JButton button = new JButton(choice);
+            button.setFont(new Font("Serif", Font.BOLD, 30));
+            button.setBackground(new Color(35, 65, 225));
+            button.setForeground(Color.WHITE);
+            button.setOpaque(true);
+            button.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+            buttonPanel.add(button);
+        }
+
+        gameChoicePanel.add(buttonPanel, BorderLayout.CENTER);
+        return gameChoicePanel;
+    }
+/**
+ * Metoda openSelectionDialog otwiera okno dialogowe do wprowadzenia ID gry do wczytania.
+ * @return selectedGameId - wybrane ID gry
+ */
+    public Long openSelectionDialog() {
+        String input = JOptionPane.showInputDialog(null, "Podaj ID gry do wczytania:", "Wprowadź wartość", JOptionPane.QUESTION_MESSAGE);
+
+        if (input != null) {
+            try {
+                selectedGameId = Long.parseLong(input);
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(null, "Wprowadź prawidłowe ID.", "Błąd", JOptionPane.ERROR_MESSAGE);
+                openSelectionDialog();
+            }
+        } else {
+            System.out.println("Użytkownik anulował wprowadzenie ID.");
+        }
+
+        return selectedGameId;
+    }
+/**
  * Metoda getSelectedPlayers zwraca wybraną liczbę graczy.
  * @return selectedPlayers - wybrana liczba graczy
  */
@@ -199,13 +278,21 @@ public class ServerGUI {
  * Metoda getSelectedBots zwraca wybraną liczbę botów.
  * @return selectedBots - wybrana liczba botów
  */
-    public synchronized int getSelectedBots() {
+    public int getSelectedBots() {
+        return selectedBots;
+    }
+
+/**
+ * Metoda getGameChoice zwraca czy chemy wczytać grę czy rozpocząć nową.
+ * @return gameChoice - nasz wybór
+ */
+    public synchronized String getGameChoice() {
         try {
             this.wait();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        return selectedBots;
+        return gameChoice;
     }
 /**
  * Metoda waitForWindowClose oczekuje na zamknięcie okna.

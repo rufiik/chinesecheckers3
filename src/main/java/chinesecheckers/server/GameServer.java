@@ -3,6 +3,8 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
+import javax.annotation.PostConstruct;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,8 +21,11 @@ public class GameServer implements Observable {
 
     @Autowired
     private GameService gameService;
+
+    @Autowired
+    private ServerGUI gui;
  
-    private int port = 0;
+    private int port;
     private final List<ClientHandler> players = new ArrayList<>();
     private final List<Integer> playerOrder = new ArrayList<>();
     private final Set<Integer> disconnectedPlayers = new HashSet<>();
@@ -29,23 +34,19 @@ public class GameServer implements Observable {
     private int currentPlayerIndex = 0;
     private int maxPlayers;
     private int nextPlayerId = 1;
-    private final Board board;
+    private final Board board = new Board();
     private boolean running;
     private boolean gameStarted = false;
     private String variant;
     private int botCount = 0;
     private Game currentGame;
 
-    public GameServer() {
-        this.board = new Board();
+    @PostConstruct
+    public void init() {
+        this.port = 12345;
+        new Thread(this::start).start();
     }
-    /**
-     * Metoda initialize inicjalizuje serwer gry z podanym portem.
-     * @param port Numer portu serwera.
-     */
-    public void initialize(int port) {
-        this.port = port;
-    }
+
     /**
      * Metoda start uruchamia serwer gry.
      */
@@ -79,50 +80,45 @@ public class GameServer implements Observable {
      * Metoda initializeGame inicjalizuje grę.
      */
     private void initializeGame(ServerSocket serverSocket) throws IOException {
-        try (Scanner scanner = new Scanner(System.in)) {
-          System.out.println("Czy chcesz odtworzyć zapisaną grę? (1 - Tak, 2 - Nie): ");
-            int choice = scanner.nextInt();
-            scanner.nextLine();
+        String choice = gui.getGameChoice();
 
-            if (choice == 1) {
-                List<Game> games = gameService.getAllGames();
-                if (games.isEmpty()) {
-                    System.out.println("Brak zapisanych gier. Rozpoczynam nową grę.");
-                    initializeNewGameSettings(scanner);
-                } else {
-                    System.out.println("Wybierz ID gry do odtworzenia:");
-                    for (Game game : games) {
-                        System.out.println("ID: " + game.getId() + ", Wariant: " + game.getVariant() + ", Liczba graczy: " + game.getMaxPlayers());
-                    }
-                    Long gameId = scanner.nextLong();
-                    loadGame(gameId, serverSocket);
-                }
-            } else if (choice == 2) {
-                initializeNewGameSettings(scanner);
-                int humanPlayers = maxPlayers - botCount;
-                if ("Order Out Of Chaos".equals(variant)) {
-                    board.initializeBoardForChaos(maxPlayers);
-                } else {
-                    board.initializeBoardForPlayers(maxPlayers);
-                }
-                currentGame = new Game();
-                currentGame.setVariant(variant);
-                currentGame.setMaxPlayers(maxPlayers);
-                currentGame.setHumanPlayers(humanPlayers);
-                gameService.saveGame(currentGame);
-                chinesecheckers.model.Board boardModel = new chinesecheckers.model.Board();
-                boardModel.setState(board.toString());
-                boardModel.setGame(currentGame);
-                gameService.saveBoard(boardModel);
+        if (choice.equals("Wczytaj zapisaną grę")) {
+            List<Game> games = gameService.getAllGames();
+            if (games.isEmpty()) {
+                System.out.println("Brak zapisanych gier. Rozpoczynam nową grę.");
+                initializeNewGameSettings();
             } else {
-                System.out.println("Nieprawidłowy wybór! Wybierz 1 lub 2.");
+                System.out.println("Wybierz ID gry do odtworzenia:");
+                for (Game game : games) {
+                    System.out.println("ID: " + game.getId() + ", Wariant: " + game.getVariant() + ", Liczba graczy: " + game.getMaxPlayers() + ", Liczba botów: " + (game.getMaxPlayers() - game.getHumanPlayers()));
+                }
+                Long gameId = gui.openSelectionDialog();
+                System.out.println("Wybrano grę o ID: " + gameId);
+                loadGame(gameId, serverSocket);
             }
+        } else if (choice.equals("Rozpocznij nową grę")) {
+            initializeNewGameSettings();
+            int humanPlayers = maxPlayers - botCount;
+            if ("Order Out Of Chaos".equals(variant)) {
+                board.initializeBoardForChaos(maxPlayers);
+            } else {
+                board.initializeBoardForPlayers(maxPlayers);
+            }
+            currentGame = new Game();
+            currentGame.setVariant(variant);
+            currentGame.setMaxPlayers(maxPlayers);
+            currentGame.setHumanPlayers(humanPlayers);
+            gameService.saveGame(currentGame);
+            chinesecheckers.model.Board boardModel = new chinesecheckers.model.Board();
+            boardModel.setState(board.toString());
+            boardModel.setGame(currentGame);
+            gameService.saveBoard(boardModel);
         }
+    
         int humanPlayers = maxPlayers - botCount;
 
         board.setMaxPlayers(maxPlayers);
         board.setVariant(variant);
-
    
         System.out.println("Oczekiwanie na graczy..."); 
         new Thread(() -> handleNewConnections(serverSocket, humanPlayers)).start();
@@ -162,45 +158,13 @@ public class GameServer implements Observable {
         broadcastGameState();
         gameStarted = true;
     }
-/**
- * Metoda initializeNewGameSettings inicjalizuje ustawienia nowej gry.
- * @param scanner Skaner.
- */
-    private void initializeNewGameSettings(Scanner scanner) {
-        while (true) {
-            System.out.println("Wybierz wariant gry (1 - Klasyczny, 2 - Order Out Of Chaos): ");
-            int choice = scanner.nextInt();
-            scanner.nextLine(); // consume newline
-            if (choice == 1) {
-                variant = "Klasyczny";
-                break;
-            } else if (choice == 2) {
-                variant = "Order Out Of Chaos";
-                break;
-            } else {
-                System.out.println("Nieprawidłowy wybór! Wybierz 1 lub 2.");
-            }
-        }
-        while (true) {
-            System.out.println("Podaj liczbę graczy (2, 3, 4, 6): ");
-            int inputPlayers = scanner.nextInt();
-            if (inputPlayers == 2 || inputPlayers == 3 || inputPlayers == 4 || inputPlayers == 6) {
-                maxPlayers = inputPlayers;
-                break;
-            } else {
-                System.out.println("Niepoprawna liczba graczy! Wybierz 2, 3, 4 lub 6.");
-            }
-        }
-        while (true) {
-            System.out.println("Wybierz liczbę botów: ");
-            int inputBots = scanner.nextInt();
-            if (inputBots >= 0 && inputBots <= maxPlayers) {
-                botCount = inputBots;
-                break;
-            } else {
-                System.out.println("Niepoprawna liczba botów! Wybierz liczbę od 0 do " + maxPlayers + ".");
-            }
-        }
+    /**
+     * Metoda initializeNewGameSettings inicjalizuje ustawienia nowej gry.
+     */
+    private void initializeNewGameSettings() {
+        maxPlayers = gui.getSelectedPlayers();
+        variant = gui.getSelectedVariant();
+        botCount = gui.getSelectedBots();
     }
     /**
      * Metoda removeDisconnectedPlayersBeforeStart usuwa rozłączonych graczy przed rozpoczęciem gry.
@@ -346,7 +310,9 @@ public class GameServer implements Observable {
      */
     @Override
     public void addObserver(Observer observer) {
-        observers.add(observer);
+        if (!observers.contains(observer)) {
+            observers.add(observer);
+        }
     }
     /**
      * Metoda removeObserver usuwa obserwatora.

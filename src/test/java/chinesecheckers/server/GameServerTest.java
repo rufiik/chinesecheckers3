@@ -2,6 +2,9 @@ package chinesecheckers.server;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -16,18 +19,23 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SpringBootTest
 class GameServerTest {
+
+    @Autowired
     private GameServer server;
+
+    @MockBean
+    private ServerGUI gui;
+
+    @MockBean
     private Observer observer;
+
     private ServerSocket mockServerSocket;
 
     @BeforeEach
     void setUp() {
-        ServerGUI gui = mock(ServerGUI.class);
-        when(gui.getSelectedPlayers()).thenReturn(2);
-        server = new GameServer();
-        server.initialize(12345);
-        observer = mock(Observer.class);
+        when(gui.getGameChoice()).thenReturn("Rozpocznij nową grę");
         mockServerSocket = mock(ServerSocket.class);
     }
 
@@ -52,9 +60,9 @@ class GameServerTest {
         server.notifyObservers("Test message");
         verify(observer, times(1)).update("Test message");
     }
+
     @Test
     void testStart() throws IOException {
-    
         doNothing().when(mockServerSocket).close();
         server.startWithMockSocket(mockServerSocket);
         assertTrue(server.isRunning());
@@ -62,16 +70,15 @@ class GameServerTest {
 
     @Test
     void testStartWhenPortAlreadyInUse() throws IOException {
-
         doThrow(new BindException()).when(mockServerSocket).bind(any());
         server.startWithMockSocket(mockServerSocket);
         assertFalse(server.isRunning());
     }
+
     @Test
     void testBroadcastMessage() {
         server.addObserver(observer);
         server.broadcastMessage("Test message");
         verify(observer, times(1)).update("Test message");
     }
-
 }
