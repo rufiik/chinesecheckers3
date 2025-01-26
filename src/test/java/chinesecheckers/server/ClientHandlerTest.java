@@ -23,7 +23,7 @@ class ClientHandlerTest {
         when(mockSocket.getOutputStream()).thenReturn(new ByteArrayOutputStream());
         when(mockSocket.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[0]));
 
-        clientHandler = new ClientHandler(mockSocket, 1, 2, "Rozgrywka klassyczna");
+        clientHandler = new ClientHandler(mockSocket, 1, 2, "Rozgrywka klassyczna", false);
         clientHandler.setOut(mockOut);
         clientHandler.setIn(mockIn);
     }

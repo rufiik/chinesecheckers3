@@ -12,6 +12,7 @@ public class ClientHandler implements Observer {
     private BufferedReader in;
     private final int playerId;
     private final int maxPlayers;
+    private boolean isBot;
 /**
  * Konstruktor klasy ClientHandler.
  * @param socket Socket klienta.
@@ -20,12 +21,13 @@ public class ClientHandler implements Observer {
  * @param variant Wariant gry.
  * @throws IOException Wyjątek wejścia/wyjścia.
  */
-    public ClientHandler(Socket socket, int playerId, int maxPlayers,String variant) throws IOException {
+    public ClientHandler(Socket socket, int playerId, int maxPlayers, String variant, boolean isBot) throws IOException {
         this.socket = socket;
         this.out = new PrintWriter(socket.getOutputStream(), true);
         this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         this.playerId = playerId;
         this.maxPlayers = maxPlayers;
+        this.isBot = isBot;
         sendMessage("Witaj, Graczu " + playerId + "!");
         sendMessage("PLAYER_ID:" + playerId);
         sendMessage("Liczba graczy:" + maxPlayers);

@@ -19,7 +19,7 @@ public class BotPlayer extends ClientHandler {
  * @throws IOException Wyjątek wejścia/wyjścia.
  */
     public BotPlayer(Socket socket, int playerId, int maxPlayers, String variant) throws IOException {
-        super(socket, playerId, maxPlayers, variant);
+        super(socket, playerId, maxPlayers, variant, true);
         this.board = new Board();
         this.playerId = playerId;
         this.maxPlayers = maxPlayers;
@@ -52,49 +52,70 @@ public class BotPlayer extends ClientHandler {
                 }
             }
         }
+        System.out.println("Najlepszy ruch: " + bestMove[0] + "," + bestMove[1] + " -> " + bestMove[2] + "," + bestMove[3]);
         return bestMove;
     }
-/**
- * Metoda getAllPossibleMoves zwraca wszystkie możliwe ruchy.
- * @param x Współrzędna x.
- * @param y Współrzędna y.
- * @return allMoves - Lista wszystkich możliwych ruchów.
- */
-private List<int[]> getAllPossibleMoves(int x, int y) {
-    List<int[]> allMoves = new ArrayList<>();
-    List<int[]> directMoves = board.getPossibleMoves(x, y);
-    allMoves.addAll(directMoves);
+    /**
+     * Metoda getAllPossibleMoves zwraca wszystkie możliwe ruchy.
+     * @param x Współrzędna x.
+     * @param y Współrzędna y.
+     * @return allMoves - Lista wszystkich możliwych ruchów.
+     */
+    private List<int[]> getAllPossibleMoves(int x, int y) {
+        List<int[]> allMoves = new ArrayList<>();
+        List<int[]> directMoves = board.getPossibleMoves(x, y);
+        allMoves.addAll(directMoves);
 
-    for (int[] move : directMoves) {
-        List<int[]> jumpMoves = board.getPossibleJumps(move[0], move[1], playerId);
-        allMoves.addAll(jumpMoves);
+        for (int[] move : directMoves) {
+            List<int[]> jumpMoves = getJumpMovesRecursive(move, new ArrayList<>());
+            allMoves.addAll(jumpMoves);
+        }
+        return allMoves;
     }
-    return allMoves;
-}
-/**
- * Metoda calculateDistance oblicza odległość.
- * @param position Pozycja.
- * @return Odległość.
- */
+
+    private List<int[]> getJumpMovesRecursive(int[] position, List<int[]> visited) {
+        List<int[]> jumpMoves = new ArrayList<>();
+        List<int[]> possibleJumps = board.getPossibleJumps(position[0], position[1], playerId);
+    
+        for (int[] jump : possibleJumps) {
+            boolean alreadyVisited = false;
+            for (int[] visitedPos : visited) {
+                if (visitedPos[0] == jump[0] && visitedPos[1] == jump[1]) {
+                    alreadyVisited = true;
+                    break;
+                }
+            }
+            if (!alreadyVisited) {
+                jumpMoves.add(jump);
+                visited.add(new int[]{jump[0], jump[1]});
+                jumpMoves.addAll(getJumpMovesRecursive(jump, visited));
+            }
+        }
+        return jumpMoves;
+    }
+    /**
+     * Metoda calculateDistance oblicza odległość.
+     * @param position Pozycja.
+     * @return Odległość.
+     */
     private int calculateDistance(int[] position) {
         int targetX = board.getOpponentBasePositions(playerId).iterator().next()[0];
         int targetY = board.getOpponentBasePositions(playerId).iterator().next()[1];
         return Math.abs(position[0] - targetX) + Math.abs(position[1] - targetY);
     }
     /**
-     * Metoda isConnected zwraca informację o połączeniu  bot zawsze true.
+     * Metoda isConnected zwraca informację o połączeniu bot zawsze true.
      */
     public boolean isConnected() {
-        return true; // Boty są zawsze połączone
+        return true;
     }
     /**
      * Metoda getMove zwraca ruch bota opozniony o 500 milisekund.
      * @return Ruch bota.
      */
-    public String getMove(){
+    public String getMove() {
         try {
-            // Dodaj opóźnienie, aby symulować myślenie bota
-            Thread.sleep(500); // 1 sekunda opóźnienia
+            Thread.sleep(500);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
