@@ -25,7 +25,8 @@ class GameServerTest {
     void setUp() {
         ServerGUI gui = mock(ServerGUI.class);
         when(gui.getSelectedPlayers()).thenReturn(2);
-        server = GameServer.getInstance(12345, gui);
+        server = new GameServer();
+        server.initialize(12345);
         observer = mock(Observer.class);
         mockServerSocket = mock(ServerSocket.class);
     }

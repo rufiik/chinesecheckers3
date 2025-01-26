@@ -476,6 +476,20 @@ public class Board {
         sb.deleteCharAt(sb.length() - 1); 
         return sb.toString();
     }
+
+    /**
+     * Metoda loadState wczytuje stan planszy.
+     * @param state - stan planszy
+     */
+    public void loadState(String state) {
+        String[] rows = state.split(";");
+        for (int i = 0; i < rows.length; i++) {
+            String[] cells = rows[i].split(",");
+            for (int j = 0; j < cells.length; j++) {
+                board[i][j] = Integer.parseInt(cells[j]);
+            }
+        }
+    }
 /**
  * Metoda getBoard zwraca planszę.
  * @return board - plansza

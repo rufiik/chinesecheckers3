@@ -3,14 +3,24 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import chinesecheckers.model.Game;
+import chinesecheckers.model.Move;
 import chinesecheckers.patterns.Observable;
 import chinesecheckers.patterns.Observer;
+import chinesecheckers.service.GameService;
 /**
  * Klasa GameServer reprezentuje serwer gry.
  */
-public class GameServer implements Observable{
+@Service
+public class GameServer implements Observable {
+    @Autowired
+    private GameService gameService;
+
     private static GameServer instance;    
-    private final int port;
+    private int port = 0;
     private final List<ClientHandler> players = new ArrayList<>();
     private final List<Integer> playerOrder = new ArrayList<>();
     private final Set<Integer> disconnectedPlayers = new HashSet<>();
@@ -22,30 +32,19 @@ public class GameServer implements Observable{
     private final Board board;
     private boolean running;
     private boolean gameStarted = false;
-    private final ServerGUI gui;
     private String variant;
     private int botCount = 0;
-    /**
-     * Konstruktor klasy GameServer.
-     * @param port Numer portu serwera.
-     * @param gui Instancja klasy ServerGUI reprezentująca interfejs graficzny serwera.
-     */
-    private GameServer(int port, ServerGUI gui) {
-        this.port = port;
-        this.gui = gui;
+    private Game currentGame;
+
+    public GameServer() {
         this.board = new Board();
     }
-/**
- * Metoda getInstance zwraca instancję serwera gry.
- * @param port Numer portu serwera.
- * @param gui Instancja klasy ServerGUI reprezentująca interfejs graficzny serwera.
- * @return instance - instancja serwera gry.
- */
-    public static synchronized GameServer getInstance(int port, ServerGUI gui) {
-        if (instance == null) {
-            instance = new GameServer(port, gui);
-        }
-        return instance;
+    /**
+     * Metoda initialize inicjalizuje serwer gry z podanym portem.
+     * @param port Numer portu serwera.
+     */
+    public void initialize(int port) {
+        this.port = port;
     }
     /**
      * Metoda start uruchamia serwer gry.
@@ -76,25 +75,55 @@ public class GameServer implements Observable{
             this.running = false;
         }
     }
-/**
- * Metoda initializeGame inicjalizuje grę.
- */
+    /**
+     * Metoda initializeGame inicjalizuje grę.
+     */
     private void initializeGame(ServerSocket serverSocket) throws IOException {
-        variant = gui.getSelectedVariant();
-        maxPlayers = gui.getSelectedPlayers();
-        botCount = gui.getSelectedBots();
+        try (Scanner scanner = new Scanner(System.in)) {
+          System.out.println("Czy chcesz odtworzyć zapisaną grę? (1 - Tak, 2 - Nie): ");
+            int choice = scanner.nextInt();
+            scanner.nextLine();
+
+            if (choice == 1) {
+                List<Game> games = gameService.getAllGames();
+                if (games.isEmpty()) {
+                    System.out.println("Brak zapisanych gier. Rozpoczynam nową grę.");
+                    initializeNewGameSettings(scanner);
+                } else {
+                    System.out.println("Wybierz ID gry do odtworzenia:");
+                    for (Game game : games) {
+                        System.out.println("ID: " + game.getId() + ", Wariant: " + game.getVariant() + ", Liczba graczy: " + game.getMaxPlayers());
+                    }
+                    Long gameId = scanner.nextLong();
+                    loadGame(gameId, serverSocket);
+                }
+            } else if (choice == 2) {
+                initializeNewGameSettings(scanner);
+                int humanPlayers = maxPlayers - botCount;
+                if ("Order Out Of Chaos".equals(variant)) {
+                    board.initializeBoardForChaos(maxPlayers);
+                } else {
+                    board.initializeBoardForPlayers(maxPlayers);
+                }
+                currentGame = new Game();
+                currentGame.setVariant(variant);
+                currentGame.setMaxPlayers(maxPlayers);
+                currentGame.setHumanPlayers(humanPlayers);
+                gameService.saveGame(currentGame);
+                chinesecheckers.model.Board boardModel = new chinesecheckers.model.Board();
+                boardModel.setState(board.toString());
+                boardModel.setGame(currentGame);
+                gameService.saveBoard(boardModel);
+            } else {
+                System.out.println("Nieprawidłowy wybór! Wybierz 1 lub 2.");
+            }
+        }
         int humanPlayers = maxPlayers - botCount;
-        System.out.println("Wybrano liczbę graczy: " + maxPlayers + " w tym " + botCount + " botów.");
 
         board.setMaxPlayers(maxPlayers);
         board.setVariant(variant);
 
-        if ("Order Out Of Chaos".equals(variant)) {
-            board.initializeBoardForChaos(maxPlayers);
-        } else {
-            board.initializeBoardForPlayers(maxPlayers);
-        }
-
+   
         System.out.println("Oczekiwanie na graczy..."); 
         new Thread(() -> handleNewConnections(serverSocket, humanPlayers)).start();
         synchronized (players) {
@@ -134,8 +163,48 @@ public class GameServer implements Observable{
         gameStarted = true;
     }
 /**
- * Metoda removeDisconnectedPlayersBeforeStart usuwa rozłączonych graczy przed rozpoczęciem gry.
+ * Metoda initializeNewGameSettings inicjalizuje ustawienia nowej gry.
+ * @param scanner Skaner.
  */
+    private void initializeNewGameSettings(Scanner scanner) {
+        while (true) {
+            System.out.println("Wybierz wariant gry (1 - Klasyczny, 2 - Order Out Of Chaos): ");
+            int choice = scanner.nextInt();
+            scanner.nextLine(); // consume newline
+            if (choice == 1) {
+                variant = "Klasyczny";
+                break;
+            } else if (choice == 2) {
+                variant = "Order Out Of Chaos";
+                break;
+            } else {
+                System.out.println("Nieprawidłowy wybór! Wybierz 1 lub 2.");
+            }
+        }
+        while (true) {
+            System.out.println("Podaj liczbę graczy (2, 3, 4, 6): ");
+            int inputPlayers = scanner.nextInt();
+            if (inputPlayers == 2 || inputPlayers == 3 || inputPlayers == 4 || inputPlayers == 6) {
+                maxPlayers = inputPlayers;
+                break;
+            } else {
+                System.out.println("Niepoprawna liczba graczy! Wybierz 2, 3, 4 lub 6.");
+            }
+        }
+        while (true) {
+            System.out.println("Wybierz liczbę botów: ");
+            int inputBots = scanner.nextInt();
+            if (inputBots >= 0 && inputBots <= maxPlayers) {
+                botCount = inputBots;
+                break;
+            } else {
+                System.out.println("Niepoprawna liczba botów! Wybierz liczbę od 0 do " + maxPlayers + ".");
+            }
+        }
+    }
+    /**
+     * Metoda removeDisconnectedPlayersBeforeStart usuwa rozłączonych graczy przed rozpoczęciem gry.
+     */
     private void removeDisconnectedPlayersBeforeStart() {
         Iterator<ClientHandler> iterator = players.iterator();
         while (iterator.hasNext()) {
@@ -146,11 +215,11 @@ public class GameServer implements Observable{
             }
         }
     }
-/**
- * Metoda startGame rozpoczyna grę.
- * @param serverSocket Gniazdo serwera.
- * @throws IOException Wyjątek wejścia/wyjścia.
- */
+    /**
+     * Metoda startGame rozpoczyna grę.
+     * @param serverSocket Gniazdo serwera.
+     * @throws IOException Wyjątek wejścia/wyjścia.
+     */
     private void startGame(ServerSocket serverSocket) throws IOException {
         while ((standings.size() + disconnectedPlayers.size()) < maxPlayers) {
             processTurn();
@@ -159,12 +228,11 @@ public class GameServer implements Observable{
         running=false;
         cleanupDisconnectedPlayers();
         displayStandings();
-        gui.waitForWindowClose();
         System.exit(0);
     }
-/**
- * Metoda processTurn przetwarza turę gracza.
- */
+    /**
+     * Metoda processTurn przetwarza turę gracza.
+     */
     private synchronized void processTurn() {
         int playerId = playerOrder.get(currentPlayerIndex);
         ClientHandler currentPlayer = null;
@@ -224,6 +292,19 @@ public class GameServer implements Observable{
                             broadcastMessage("Gracz " + playerId + " wykonał ruch: " + move, playerId);
                             broadcastGameState();
 
+                            Move moveEntity = new Move();
+                            moveEntity.setStartX(startX);
+                            moveEntity.setStartY(startY);
+                            moveEntity.setEndX(endX);
+                            moveEntity.setEndY(endY);
+                            moveEntity.setPlayerId(playerId);
+                            moveEntity.setGame(currentGame);
+                            gameService.saveMove(moveEntity);
+
+                            chinesecheckers.model.Board boardModel = gameService.getBoardByGame(currentGame);
+                            boardModel.setState(board.toString());
+                            gameService.saveBoard(boardModel);
+
                             if ("Order Out Of Chaos".equals(variant) && board.allPiecesInHomeBase(playerId) && !standings.contains(playerId)) {
                                 standings.add(playerId);
                                 broadcastMessage("Gracz " + playerId + " zajął miejsce " + standings.size() + "!");
@@ -260,41 +341,41 @@ public class GameServer implements Observable{
             }
         }
     }
-/**
- * Metoda addObserver dodaje obserwatora.
- */
+    /**
+     * Metoda addObserver dodaje obserwatora.
+     */
     @Override
     public void addObserver(Observer observer) {
         observers.add(observer);
     }
-/**
- * Metoda removeObserver usuwa obserwatora.
- */
+    /**
+     * Metoda removeObserver usuwa obserwatora.
+     */
     @Override
     public void removeObserver(Observer observer) {
         observers.remove(observer);
     }
-/**
- * Metoda notifyObservers powiadamia obserwatorów.
- */
+    /**
+     * Metoda notifyObservers powiadamia obserwatorów.
+     */
     @Override
     public void notifyObservers(String message) {
         for (Observer observer : observers) {
             observer.update(message);
         }
     }
-/**
- * Metoda broadcastMessage wysyła wiadomość do wszystkich obserwatorów.
- * @param message Wiadomość do wysłania.
- */
+    /**
+     * Metoda broadcastMessage wysyła wiadomość do wszystkich obserwatorów.
+     * @param message Wiadomość do wysłania.
+     */
     public void broadcastMessage(String message) {
         notifyObservers(message);
     }
-/**
- * Metoda broadcastMessage wysyła wiadomość do wszystkich obserwatorów z wyłączeniem określonego gracza.
- * @param message Wiadomość do wysłania.
- * @param excludePlayerId Identyfikator gracza, który ma zostać wykluczony.
- */
+    /**
+     * Metoda broadcastMessage wysyła wiadomość do wszystkich obserwatorów z wyłączeniem określonego gracza.
+     * @param message Wiadomość do wysłania.
+     * @param excludePlayerId Identyfikator gracza, który ma zostać wykluczony.
+     */
     private void broadcastMessage(String message, int excludePlayerId) {
         for (Observer observer : observers) {
             if (observer instanceof ClientHandler && 
@@ -303,9 +384,9 @@ public class GameServer implements Observable{
             }
         }
     }
-/**
- *  Metoda cleanupDisconnectedPlayers usuwa rozłączonych graczy.
- */
+    /**
+     *  Metoda cleanupDisconnectedPlayers usuwa rozłączonych graczy.
+     */
     private void cleanupDisconnectedPlayers() {
         for (ClientHandler player : players) {
             if (!player.isConnected()) {
@@ -313,9 +394,9 @@ public class GameServer implements Observable{
             }
         }
     }
-/**
- * Metoda displayStandings wyświetla ranking graczy.
- */
+    /**
+     * Metoda displayStandings wyświetla ranking graczy.
+     */
     private void displayStandings() {
         System.out.println("Kolejność końcowa:");
         broadcastMessage("Gra zakończona! Kolejność końcowa: ");
@@ -329,10 +410,10 @@ public class GameServer implements Observable{
             broadcastMessage("Gracz " + playerId + " rozłączył się przed zakończeniem gry");
         }
     }
-/**
- * Metoda handleNewConnections obsługuje nowe połączenia.
- * @param serverSocket Gniazdo serwera.
- */
+    /**
+     * Metoda handleNewConnections obsługuje nowe połączenia.
+     * @param serverSocket Gniazdo serwera.
+     */
     private void handleNewConnections(ServerSocket serverSocket, int humanPlayers) {
         while (true) {
             try {
@@ -409,13 +490,70 @@ public class GameServer implements Observable{
     public Set<Integer> getDisconnectedPlayers() {
         return disconnectedPlayers;
     }
-    /**
-     * Metoda main uruchamia serwer gry.
-     * @param args Argumenty wywołania programu.
-     */
-    public static void main(String[] args) {
-        ServerGUI gui = new ServerGUI();
-        GameServer server = new GameServer(12345, gui);
-        server.start();
+/**
+ * Metoda loadGame odtwarza grę o podanym ID.
+ * @param gameId ID gry.
+ * @param serverSocket Gniazdo serwera.
+ * @throws IOException Wyjątek wejścia/wyjścia.
+ */
+    public void loadGame(Long gameId, ServerSocket serverSocket) throws IOException {
+        while (true) {
+            Game game = gameService.getGameById(gameId);
+            if (game != null) {
+                this.currentGame = game;
+                this.variant = game.getVariant();
+                this.maxPlayers = game.getMaxPlayers();
+                this.botCount = maxPlayers - game.getHumanPlayers();
+                this.board.setMaxPlayers(maxPlayers);
+                this.board.setVariant(variant);
+    
+                System.out.println("Gra została załadowana.");
+    
+                // Odtworzenie stanu planszy
+
+    
+                // Inicjalizacja mapowania baz przeciwników
+                board.initializeOpponentBaseMapping(maxPlayers);
+    
+                // Oczekiwanie na graczy
+                int humanPlayers = maxPlayers - botCount;
+                new Thread(() -> handleNewConnections(serverSocket, humanPlayers)).start();
+                synchronized (players) {
+                    while (players.size() < humanPlayers) {
+                        try {
+                            players.wait();
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            System.out.println("Oczekiwanie na graczy przerwane.");
+                        }
+                    }
+                }
+                System.out.println(board.toString());
+                chinesecheckers.model.Board boardState = gameService.getBoardByGame(game);
+                if (boardState != null) {
+                    board.loadState(boardState.getState());
+                }
+    
+                broadcastGameState();
+                gameStarted = true;
+                break; // Wyjście z pętli po załadowaniu gry
+            } else {
+                System.out.println("Nie znaleziono gry o podanym ID. Spróbuj ponownie.");
+                try (Scanner scanner = new Scanner(System.in)) {
+                    System.out.println("Wybierz ID gry do odtworzenia:");
+                    gameId = scanner.nextLong();
+                }
+            }
+        }
+    }
+/**
+ * Metoda saveBoardState zapisuje stan planszy.
+ */
+    public void saveBoardState() {
+        chinesecheckers.model.Board boardModel = gameService.getBoardByGame(currentGame);
+        if (boardModel != null) {
+            boardModel.setState(board.toString());
+            gameService.saveBoard(boardModel);
+        }
     }
 }
