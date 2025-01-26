@@ -41,14 +41,22 @@ public class BotPlayer extends ClientHandler {
         List<int[]> pieces = board.getPlayerPieces(playerId);
         int[] bestMove = null;
         int minDistance = Integer.MAX_VALUE;
+        int maxDistance = Integer.MIN_VALUE;
     
         for (int[] piece : pieces) {
             List<int[]> destinations = getAllPossibleMoves(piece[0], piece[1]);
             for (int[] destination : destinations) {
-                int distance = calculateDistance(destination);
-                if (distance < minDistance) {
-                    minDistance = distance;
+                int dStart = calculateDistance(piece);
+                int dDest = calculateDistance(destination);
+                int destLength = dDest - dStart;
+
+                if (destLength < minDistance) {
+                    minDistance = destLength;
                     bestMove = new int[]{piece[0], piece[1], destination[0], destination[1]};
+                    maxDistance = dStart;
+                } else if (destLength == minDistance && dStart > maxDistance) {
+                    bestMove = new int[]{piece[0], piece[1], destination[0], destination[1]};
+                    maxDistance = dStart;
                 }
             }
         }
@@ -64,15 +72,28 @@ public class BotPlayer extends ClientHandler {
     private List<int[]> getAllPossibleMoves(int x, int y) {
         List<int[]> allMoves = new ArrayList<>();
         List<int[]> directMoves = board.getPossibleMoves(x, y);
-        allMoves.addAll(directMoves);
+        for (int[] move : directMoves) {
+            if (board.isValidMove(x, y, move[0], move[1], playerId)) {
+                allMoves.add(move);
+            }
+        }
 
         for (int[] move : directMoves) {
             List<int[]> jumpMoves = getJumpMovesRecursive(move, new ArrayList<>());
-            allMoves.addAll(jumpMoves);
+            for (int[] jumpMove : jumpMoves) {
+                if (board.isValidMove(x, y, jumpMove[0], jumpMove[1], playerId)) {
+                    allMoves.add(jumpMove);
+                }
+            }
         }
         return allMoves;
     }
-
+    /**
+     * Metoda getJumpMovesRecursive zwraca możliwe ruchy skoku.
+     * @param position Pozycja.
+     * @param visited Lista odwiedzonych.
+     * @return jumpMoves - Lista możliwych ruchów skoku.
+     */
     private List<int[]> getJumpMovesRecursive(int[] position, List<int[]> visited) {
         List<int[]> jumpMoves = new ArrayList<>();
         List<int[]> possibleJumps = board.getPossibleJumps(position[0], position[1], playerId);
@@ -101,7 +122,10 @@ public class BotPlayer extends ClientHandler {
     private int calculateDistance(int[] position) {
         int targetX = board.getOpponentBasePositions(playerId).iterator().next()[0];
         int targetY = board.getOpponentBasePositions(playerId).iterator().next()[1];
-        return Math.abs(position[0] - targetX) + Math.abs(position[1] - targetY);
+        int dx = Math.abs(position[0] - targetX);
+        int dy = Math.abs(position[1] - targetY);
+        int dz = Math.abs(position[0] + position[1] - targetX - targetY);
+        return dx + dy + dz;
     }
     /**
      * Metoda isConnected zwraca informację o połączeniu bot zawsze true.

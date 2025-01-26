@@ -16,10 +16,10 @@ import chinesecheckers.service.GameService;
  */
 @Service
 public class GameServer implements Observable {
+
     @Autowired
     private GameService gameService;
-
-    private static GameServer instance;    
+ 
     private int port = 0;
     private final List<ClientHandler> players = new ArrayList<>();
     private final List<Integer> playerOrder = new ArrayList<>();
