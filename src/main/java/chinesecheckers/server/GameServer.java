@@ -472,16 +472,8 @@ public class GameServer implements Observable {
                 this.botCount = maxPlayers - game.getHumanPlayers();
                 this.board.setMaxPlayers(maxPlayers);
                 this.board.setVariant(variant);
-    
-                System.out.println("Gra została załadowana.");
-    
-                // Odtworzenie stanu planszy
-
-    
-                // Inicjalizacja mapowania baz przeciwników
+                System.out.println("Gra została załadowana oczekiwanie na graczy...");
                 board.initializeOpponentBaseMapping(maxPlayers);
-    
-                // Oczekiwanie na graczy
                 int humanPlayers = maxPlayers - botCount;
                 new Thread(() -> handleNewConnections(serverSocket, humanPlayers)).start();
                 synchronized (players) {
@@ -494,7 +486,6 @@ public class GameServer implements Observable {
                         }
                     }
                 }
-                System.out.println(board.toString());
                 chinesecheckers.model.Board boardState = gameService.getBoardByGame(game);
                 if (boardState != null) {
                     board.loadState(boardState.getState());

@@ -51,8 +51,6 @@ public class GameService {
     }
 
     public Board saveBoard(Board board) {
-        System.out.println("Zapisuję boardModel do bazy danych:");
-        System.out.println(board.getState());
         return boardRepository.save(board);
     }
 

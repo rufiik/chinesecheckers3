@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class BotPlayer extends ClientHandler {
     private Board board;
@@ -43,13 +44,22 @@ public class BotPlayer extends ClientHandler {
         int minDistance = Integer.MAX_VALUE;
         int maxDistance = Integer.MIN_VALUE;
     
+        System.out.println("Aktualne pozycje pionków:");
+        for (int[] piece : pieces) {
+            System.out.println("Pionek: (" + piece[0] + ", " + piece[1] + ")");
+        }
+    
         for (int[] piece : pieces) {
             List<int[]> destinations = getAllPossibleMoves(piece[0], piece[1]);
+            System.out.println("Możliwe ruchy dla pionka (" + piece[0] + ", " + piece[1] + "):");
             for (int[] destination : destinations) {
+                System.out.println("Cel: (" + destination[0] + ", " + destination[1] + ")");
                 int dStart = calculateDistance(piece);
                 int dDest = calculateDistance(destination);
                 int destLength = dDest - dStart;
-
+    
+                System.out.println("Odległość początkowa: " + dStart + ", Odległość docelowa: " + dDest + ", Różnica: " + destLength);
+    
                 if (destLength < minDistance) {
                     minDistance = destLength;
                     bestMove = new int[]{piece[0], piece[1], destination[0], destination[1]};
@@ -60,6 +70,9 @@ public class BotPlayer extends ClientHandler {
                 }
             }
         }
+            System.out.println("Wybrany ruch: (" + bestMove[0] + ", " + bestMove[1] + ") -> (" + bestMove[2] + ", " + bestMove[3] + ")");
+
+    
         return bestMove;
     }
     /**
@@ -119,13 +132,26 @@ public class BotPlayer extends ClientHandler {
      * @return Odległość.
      */
     private int calculateDistance(int[] position) {
-        int targetX = board.getOpponentBasePositions(playerId).iterator().next()[0];
-        int targetY = board.getOpponentBasePositions(playerId).iterator().next()[1];
+        int targetX;
+        int targetY;
+        if(variant == "Order Out Of Chaos"){
+            targetX = board.getHomeBasePositions(playerId).iterator().next()[0];
+            targetY = board.getHomeBasePositions(playerId).iterator().next()[1];
+        }
+        else {
+            targetX = board.getOpponentBasePositions(playerId).iterator().next()[0];
+            targetY = board.getOpponentBasePositions(playerId).iterator().next()[1];
+        }
         int dx = Math.abs(position[0] - targetX);
         int dy = Math.abs(position[1] - targetY);
         int dz = Math.abs(position[0] + position[1] - targetX - targetY);
-        return dx + dy + dz;
+        int distance = dx + dy + dz;
+    
+        // Sprawdzenie, czy pole docelowe jest zajęte
+    
+        return distance;
     }
+
     /**
      * Metoda isConnected zwraca informację o połączeniu bot zawsze true.
      */
