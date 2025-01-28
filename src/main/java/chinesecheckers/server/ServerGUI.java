@@ -27,7 +27,7 @@ public class ServerGUI {
     public ServerGUI() {
         frame = new JFrame("Chińskie warcaby - serwer");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(400, 500);
+        frame.setSize(600, 500);
         frame.setLocationRelativeTo(null);
         frame.setLayout(new BorderLayout(10, 10));
 
@@ -130,20 +130,24 @@ public class ServerGUI {
     private JPanel createVariantPanel() {
         JPanel variantPanel = new JPanel(new BorderLayout(10, 10));
         JLabel label = new JLabel("Wybierz wariant gry:", SwingConstants.CENTER);
-        label.setFont(new Font("FF DIN", Font.BOLD, 30));
+        label.setFont(new Font("FF DIN", Font.BOLD, 36));
         label.setBorder(BorderFactory.createEmptyBorder(20, 0, 10, 0));
         variantPanel.add(label, BorderLayout.NORTH);
 
-        JPanel buttonPanel = new JPanel(new GridLayout(2, 1, 10, 10));
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
         String[] variants = {"Rozgrywka klasyczna", "Order Out Of Chaos"};
         for (String variant : variants) {
             JButton button = new JButton(variant);
-            button.setFont(new Font("Serif", Font.BOLD, 30));
+            button.setFont(new Font("Serif", Font.BOLD, 28));
             button.setBackground(new Color(35, 65, 225));
             button.setForeground(Color.WHITE);
             button.setOpaque(true);
             button.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+            button.setMaximumSize(new Dimension(300, 100));
+            button.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
             buttonPanel.add(button);
+            buttonPanel.add(Box.createRigidArea(new Dimension(0, 10)));
         }
 
         variantPanel.add(buttonPanel, BorderLayout.CENTER);
@@ -156,11 +160,11 @@ public class ServerGUI {
     private JPanel createPlayerSelectionPanel() {
         JPanel playerSelectionPanel = new JPanel(new BorderLayout(10, 10));
         JLabel label = new JLabel("Wybierz liczbę graczy:", SwingConstants.CENTER);
-        label.setFont(new Font("FF DIN", Font.BOLD, 30));
+        label.setFont(new Font("FF DIN", Font.BOLD, 36));
         label.setBorder(BorderFactory.createEmptyBorder(20, 0, 10, 0));
         playerSelectionPanel.add(label, BorderLayout.NORTH);
 
-        JPanel buttonPanel = new JPanel(new GridLayout(2, 2, 10, 10));
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
         int[] playerOptions = {2, 3, 4, 6};
         Color[] buttonColors = {new Color(139, 0, 0), new Color(0, 100, 0), new Color(0, 0, 139), new Color(255, 140, 0)};
         for (int i = 0; i < playerOptions.length; i++) {
@@ -171,6 +175,7 @@ public class ServerGUI {
             button.setForeground(Color.WHITE);
             button.setOpaque(true);
             button.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+            button.setPreferredSize(new Dimension(80, 100));
             buttonPanel.add(button);
         }
 
@@ -184,20 +189,21 @@ public class ServerGUI {
     private JPanel createBotSelectionPanel() {
         JPanel botSelectionPanel = new JPanel(new BorderLayout(10, 10));
         JLabel label = new JLabel("Wybierz liczbę botów:", SwingConstants.CENTER);
-        label.setFont(new Font("FF DIN", Font.BOLD, 30));
+        label.setFont(new Font("FF DIN", Font.BOLD, 36));
         label.setBorder(BorderFactory.createEmptyBorder(20, 0, 10, 0));
         botSelectionPanel.add(label, BorderLayout.NORTH);
 
-        JPanel buttonPanel = new JPanel(new GridLayout(2, 2, 10, 10));
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
         int maxBots = selectedPlayers;
         Color[] buttonColors = {new Color(139, 0, 0), new Color(0, 100, 0), new Color(0, 0, 139), new Color(255, 140, 0), new Color(139, 0, 139), new Color(60, 40, 20), new Color(69, 69, 69)};
-        for (int i = 0; i <= maxBots; i++) {
+        for (int i = 0; i < maxBots; i++) {
             JButton button = new JButton(String.valueOf(i));
             button.setFont(new Font("Serif", Font.BOLD, 40));
             button.setBackground(buttonColors[i]);
             button.setForeground(Color.WHITE);
             button.setOpaque(true);
             button.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+            button.setPreferredSize(new Dimension(80, 100));
             buttonPanel.add(button);
         }
 
@@ -210,21 +216,25 @@ public class ServerGUI {
  */
     private JPanel createGameChoicePanel() {
         JPanel gameChoicePanel = new JPanel(new BorderLayout(10, 10));
-        JLabel label = new JLabel("Wybierz co chcesz zrobić:", SwingConstants.CENTER);
-        label.setFont(new Font("FF DIN", Font.BOLD, 30));
+        JLabel label = new JLabel("Chińskie Warcaby", SwingConstants.CENTER);
+        label.setFont(new Font("Comic Sans MS", Font.BOLD, 48));
         label.setBorder(BorderFactory.createEmptyBorder(20, 0, 10, 0));
         gameChoicePanel.add(label, BorderLayout.NORTH);
 
-        JPanel buttonPanel = new JPanel(new GridLayout(2, 1, 10, 10));
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
         String[] choices = {"Rozpocznij nową grę", "Wczytaj zapisaną grę"};
         for (String choice : choices) {
             JButton button = new JButton(choice);
-            button.setFont(new Font("Serif", Font.BOLD, 30));
+            button.setFont(new Font("Serif", Font.BOLD, 28));
             button.setBackground(new Color(35, 65, 225));
             button.setForeground(Color.WHITE);
             button.setOpaque(true);
             button.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+            button.setMaximumSize(new Dimension(300, 100));
+            button.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
             buttonPanel.add(button);
+            buttonPanel.add(Box.createRigidArea(new Dimension(0, 10)));
         }
 
         gameChoicePanel.add(buttonPanel, BorderLayout.CENTER);

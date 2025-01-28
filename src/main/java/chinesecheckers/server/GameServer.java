@@ -5,7 +5,6 @@ import java.util.*;
 
 import javax.annotation.PostConstruct;
 
-import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -87,8 +86,7 @@ public class GameServer implements Observable {
             if (choice.equals("Wczytaj zapisaną grę")) {
                 List<Game> games = gameService.getAllGames();
                 if (games.isEmpty()) {
-                    System.out.println("Brak zapisanych gier. Rozpoczynam nową grę.");
-                    initializeNewGameSettings();
+                    System.out.println("Brak zapisanych gier.");
                 } else {
                     System.out.println("Wybierz ID gry do odtworzenia:");
                     for (Game game : games) {
@@ -120,8 +118,7 @@ public class GameServer implements Observable {
             }
         
             int humanPlayers = maxPlayers - botCount;
-    
-            board.setMaxPlayers(maxPlayers);
+
             board.setVariant(variant);
        
             System.out.println("Oczekiwanie na graczy..."); 
@@ -483,7 +480,6 @@ public class GameServer implements Observable {
                     this.variant = game.getVariant();
                     this.maxPlayers = game.getMaxPlayers();
                     this.botCount = maxPlayers - game.getHumanPlayers();
-                    this.board.setMaxPlayers(maxPlayers);
                     this.board.setVariant(variant);
                     System.out.println("Gra jest w trakcie odtwarzania czekanie na graczy...");
                     board.initializeOpponentBaseMapping(maxPlayers);

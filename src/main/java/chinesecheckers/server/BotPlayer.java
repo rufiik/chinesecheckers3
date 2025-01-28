@@ -71,7 +71,7 @@ public class BotPlayer extends ClientHandler {
         }    
         return bestMove;
     }
-       /**
+    /**
      * Metoda getFirstOpponentBasePositions zwraca pierwsze n pozycje w OpponentBase.
      * @param n Liczba pozycji.
      * @return Lista pierwszych n pozycji w OpponentBase.
@@ -101,7 +101,7 @@ public class BotPlayer extends ClientHandler {
         }
         return positions;
     }
-      /**
+    /**
      * Metoda isPieceInPositions sprawdza, czy pionek znajduje się na jednej z podanych pozycji.
      * @param piece Pionek.
      * @param positions Lista pozycji.
@@ -236,6 +236,29 @@ public class BotPlayer extends ClientHandler {
             String gameState = message.substring("Stan planszy:".length()).trim();
             updateBoard(gameState);
         }
-
-}
+    }
+    /**
+     * Metoda getPlayerId zwraca identyfikator gracza.
+     * @param playerId Identyfikator gracza.
+     * @return Identyfikator gracza.
+     */
+    public int getPlayerId(int playerId) {
+        return playerId;
+    }
+    /**
+     * Metoda getMaxPlayers zwraca maksymalną liczbę graczy.
+     * @param maxPlayers Maksymalna liczba graczy.
+     * @return Maksymalna liczba graczy.
+     */
+    public int getMaxPlayers(int maxPlayers) {
+        return maxPlayers;
+    }
+    /**
+     * Metoda getVariant zwraca wariant gry.
+     * @param variant Wariant gry.
+     * @return Wariant gry.
+     */
+    public String getVariant(String variant) {
+        return variant;
+    }
 }

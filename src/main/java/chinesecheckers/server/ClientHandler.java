@@ -82,6 +82,13 @@ public class ClientHandler implements Observer {
         }
     }
 /**
+ * Metoda isBot zwraca informację, czy klient jest botem.
+ * @return isBot - Informacja, czy klient jest botem.
+ */
+    public boolean isBot() {
+        return isBot;
+    }
+/**
  * Metoda close zamyka połączenie z klientem.
  */
     public void close() {

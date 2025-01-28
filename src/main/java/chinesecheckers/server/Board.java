@@ -14,7 +14,6 @@ public class Board {
     private static final int COLUMNS = 25;
     private List<Set<int[]>> playerBases;
     private int[] opponentBaseMapping;
-    private int maxPlayers;
     private String variant;
 /**
  *  Konstruktor klasy Board.  
@@ -513,13 +512,6 @@ public class Board {
  */
     public int[] getOpponentBaseMapping() {
         return opponentBaseMapping;
-    }
-/**
- * Metoda setMaxPlayers ustawia maksymalną liczbę graczy.
- * @param maxPlayers - maksymalna liczba graczy
- */
-    public void setMaxPlayers(int maxPlayers) {
-        this.maxPlayers = maxPlayers;
     }
 /**
  * Metoda setVariant ustawia wariant gry.
