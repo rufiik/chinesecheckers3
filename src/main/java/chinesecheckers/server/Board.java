@@ -1,5 +1,5 @@
 package chinesecheckers.server;
-
+import java.util.LinkedHashSet;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -55,7 +55,7 @@ public class Board {
     private void initializePlayerBases() {
         playerBases = new ArrayList<>(6);
         for (int i = 0; i < 6; i++) {
-            playerBases.add(new HashSet<>());
+            playerBases.add(new LinkedHashSet<>());
         }
 
         addPlayerBase(0, new int[][]{{0, 12}, {1, 11}, {1, 13}, {2, 10}, {2, 12}, {2, 14}, {3, 9}, {3, 11}, {3, 13}, {3, 15}});
@@ -281,6 +281,16 @@ public class Board {
  */
     public boolean hasPiece(int x, int y) {
         return board[x][y] != 0 && board[x][y] != 7;
+    }
+/**
+ * Metoda hasPlayerPiece sprawdza, czy na danej pozycji znajduje się pionek gracza. 
+ * @param x - współrzędna x
+ * @param y - współrzędna y
+ * @param playerId - numer gracza
+ * @return true, jeśli na danej pozycji znajduje się pionek gracza, w przeciwnym razie false.
+ */
+    public boolean hasPlayerPiece(int x, int y, int playerId) {
+        return board[x][y] == playerId;
     }
 /**
  * Metoda isEmpty sprawdza, czy dana pozycja jest pusta.

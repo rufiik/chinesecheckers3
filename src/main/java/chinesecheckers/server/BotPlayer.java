@@ -3,14 +3,15 @@ package chinesecheckers.server;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 public class BotPlayer extends ClientHandler {
     private Board board;
     private int playerId;
     private int maxPlayers;
     private String variant;
+    private int BotPiecesInEndZone;
 /**
  * Konstruktor klasy BotPlayer.
  * @param socket Socket klienta.
@@ -43,23 +44,21 @@ public class BotPlayer extends ClientHandler {
         int[] bestMove = null;
         int minDistance = Integer.MAX_VALUE;
         int maxDistance = Integer.MIN_VALUE;
-    
-        System.out.println("Aktualne pozycje pionków:");
-        for (int[] piece : pieces) {
-            System.out.println("Pionek: (" + piece[0] + ", " + piece[1] + ")");
+        if(variant.equals("Order Out Of Chaos")){
+            List<int[]> homeBasePositions = getFirstHomeBasePositions(BotPiecesInEndZone);
+            pieces.removeIf(piece -> isPieceInPositions(piece, homeBasePositions));
         }
-    
+        else{
+            List<int[]> opponentBasePositions = getFirstOpponentBasePositions(BotPiecesInEndZone);
+            pieces.removeIf(piece -> isPieceInPositions(piece, opponentBasePositions));
+        }
+        
         for (int[] piece : pieces) {
             List<int[]> destinations = getAllPossibleMoves(piece[0], piece[1]);
-            System.out.println("Możliwe ruchy dla pionka (" + piece[0] + ", " + piece[1] + "):");
             for (int[] destination : destinations) {
-                System.out.println("Cel: (" + destination[0] + ", " + destination[1] + ")");
                 int dStart = calculateDistance(piece);
                 int dDest = calculateDistance(destination);
                 int destLength = dDest - dStart;
-    
-                System.out.println("Odległość początkowa: " + dStart + ", Odległość docelowa: " + dDest + ", Różnica: " + destLength);
-    
                 if (destLength < minDistance) {
                     minDistance = destLength;
                     bestMove = new int[]{piece[0], piece[1], destination[0], destination[1]};
@@ -69,11 +68,52 @@ public class BotPlayer extends ClientHandler {
                     maxDistance = dStart;
                 }
             }
-        }
-            System.out.println("Wybrany ruch: (" + bestMove[0] + ", " + bestMove[1] + ") -> (" + bestMove[2] + ", " + bestMove[3] + ")");
-
-    
+        }    
         return bestMove;
+    }
+       /**
+     * Metoda getFirstOpponentBasePositions zwraca pierwsze n pozycje w OpponentBase.
+     * @param n Liczba pozycji.
+     * @return Lista pierwszych n pozycji w OpponentBase.
+     */
+    private List<int[]> getFirstOpponentBasePositions(int n) {
+        List<int[]> positions = new ArrayList<>();
+        Iterator<int[]> targetPositions = board.getOpponentBasePositions(playerId).iterator();
+        int count = 0;
+        while (targetPositions.hasNext() && count < n) {
+            positions.add(targetPositions.next());
+            count++;
+        }
+        return positions;
+    }
+    /**
+     * Metoda getFirstHomeBasePositions zwraca pierwsze n pozycje w HomeBase.
+     * @param n Liczba pozycji.
+     * @return Lista pierwszych n pozycji w HomeBase.
+     */
+    private List<int[]> getFirstHomeBasePositions(int n) {
+        List<int[]> positions = new ArrayList<>();
+        Iterator<int[]> targetPositions = board.getHomeBasePositions(playerId).iterator();
+        int count = 0;
+        while (targetPositions.hasNext() && count < n) {
+            positions.add(targetPositions.next());
+            count++;
+        }
+        return positions;
+    }
+      /**
+     * Metoda isPieceInPositions sprawdza, czy pionek znajduje się na jednej z podanych pozycji.
+     * @param piece Pionek.
+     * @param positions Lista pozycji.
+     * @return true, jeśli pionek znajduje się na jednej z podanych pozycji, w przeciwnym razie false.
+     */
+    private boolean isPieceInPositions(int[] piece, List<int[]> positions) {
+        for (int[] position : positions) {
+            if (position[0] == piece[0] && position[1] == piece[1]) {
+                return true;
+            }
+        }
+        return false;
     }
     /**
      * Metoda getAllPossibleMoves zwraca wszystkie możliwe ruchy.
@@ -132,22 +172,28 @@ public class BotPlayer extends ClientHandler {
      * @return Odległość.
      */
     private int calculateDistance(int[] position) {
-        int targetX;
-        int targetY;
-        if(variant == "Order Out Of Chaos"){
-            targetX = board.getHomeBasePositions(playerId).iterator().next()[0];
-            targetY = board.getHomeBasePositions(playerId).iterator().next()[1];
+        int targetX=0;
+        int targetY=0;
+        Iterator<int[]> targetPositions;
+        if (variant.equals("Order Out Of Chaos")) {
+            targetPositions = board.getHomeBasePositions(playerId).iterator();
+        } else {
+            targetPositions = board.getOpponentBasePositions(playerId).iterator();
         }
-        else {
-            targetX = board.getOpponentBasePositions(playerId).iterator().next()[0];
-            targetY = board.getOpponentBasePositions(playerId).iterator().next()[1];
+        BotPiecesInEndZone= 0;
+        while (targetPositions.hasNext()) {
+            int[] targetPosition = targetPositions.next();
+            targetX = targetPosition[0];
+            targetY = targetPosition[1];
+            BotPiecesInEndZone++; 
+            if (!board.hasPlayerPiece(targetX, targetY,playerId)) {
+                break;
+            }
         }
         int dx = Math.abs(position[0] - targetX);
         int dy = Math.abs(position[1] - targetY);
         int dz = Math.abs(position[0] + position[1] - targetX - targetY);
         int distance = dx + dy + dz;
-    
-        // Sprawdzenie, czy pole docelowe jest zajęte
     
         return distance;
     }
