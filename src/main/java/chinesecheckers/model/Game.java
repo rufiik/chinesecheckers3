@@ -18,6 +18,10 @@ public class Game {
     @OneToOne(mappedBy = "game", cascade = CascadeType.ALL)
     private Board board;
 
+    @ElementCollection
+    @CollectionTable(name = "player_order", joinColumns = @JoinColumn(name = "game_id"))
+    @Column(name = "player_id")
+    private List<Integer> playerOrder;
     // Gettery i settery
     public Long getId() {
         return id;
@@ -65,5 +69,12 @@ public class Game {
 
     public void setBoard(Board board) {
         this.board = board;
+    }
+    public List<Integer> getPlayerOrder() {
+        return playerOrder;
+    }
+
+    public void setPlayerOrder(List<Integer> playerOrder) {
+        this.playerOrder = playerOrder;
     }
 }

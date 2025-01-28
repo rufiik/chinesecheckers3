@@ -6,6 +6,8 @@ import chinesecheckers.model.Move;
 import chinesecheckers.repository.BoardRepository;
 import chinesecheckers.repository.GameRepository;
 import chinesecheckers.repository.MoveRepository;
+import org.springframework.transaction.annotation.Transactional;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -41,8 +43,13 @@ public class GameService {
         return gameRepository.findAll();
     }
 
+      @Transactional
     public Game getGameById(Long gameId) {
-        return gameRepository.findById(gameId).orElse(null);
+        Game game = gameRepository.findById(gameId).orElse(null);
+        if (game != null) {
+            Hibernate.initialize(game.getPlayerOrder());
+        }
+        return game;
     }
 
     public List<Move> getMovesByGameId(Long gameId) {
